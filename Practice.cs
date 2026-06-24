@@ -1,154 +1,3 @@
-BokController
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using dotnetapp.Models;
-using dotnetapp.Services;
-using Microsoft.AspNetCore.Mvc;
-using dotnetapp.Repository;
-using Microsoft.Extensions.Logging;
- 
-namespace dotnetapp.Controllers
-{
-    [ApiController]
-    [Route("api/books")]
-    public class BookController : ControllerBase
-    {
-        public IBookService ser;
- 
-        public BookController( IBookService ser1)
-        {
-            ser =ser1;
-        }
- 
-        [HttpGet]
-        public ActionResult<List<Book>> GetBooks()
-        {
-            return Ok(ser.GetBooks());
-        }
- 
-        [HttpGet("{id}")]
-        public ActionResult<Book> GetBook(int id)
-        {
-            var book = ser.GetBook(id);
-            if(book==null)
-              return NotFound();
-           
-            return Ok(book);
-        }
- 
-        [HttpPost]
-        public ActionResult<Book> SaveBook([FromBody]Book obj)
-        {
-            var createdBook = ser.SaveBook(obj);
-            return CreatedAtAction(nameof(GetBook), new {id = createdBook.BookId},
-            createdBook);
-        }
- 
-        [HttpPut("{id}")]
-        public ActionResult<Book> UpdateBook(int id, Book obj)
-        {
-            var res = ser.UpdateBook(id, obj);
-            if(res == null)
-              return NotFound();
- 
-            return NoContent();
-           
-        }
- 
-        [HttpDelete("{id}")]
-        public IActionResult DeleteBook(int id)
-        {
-            ser.DeleteBook(id);
- 
-            return NoContent();
-        }
-    }
-}
-ordercontroller
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using dotnetapp.Models;
-using dotnetapp.Services;
-using Microsoft.AspNetCore.Mvc;
-using dotnetapp.Repository;
-using Microsoft.Extensions.Logging;
- 
-namespace dotnetapp.Controllers
-{
-    [ApiController]
-    [Route("api/orders")]
-    public class OrderController : ControllerBase
-    {
-        public IOrderService ser;
- 
-        public OrderController( IOrderService ser1)
-        {
-            ser =ser1;
-        }
- 
-        [HttpGet]
-        public ActionResult<List<Order>> GetOrders()
-        {
-            return Ok(ser.GetOrders());
-        }
- 
-        [HttpGet("{id}")]
-        public ActionResult<Book> GetOrder(int id)
-        {
-            var order = ser.GetOrder(id);
-            if(order==null)
-              return NotFound();
-           
-            return Ok(order);
-        }
- 
-        [HttpPost]
-        public ActionResult<Book> SaveOrder([FromBody]Order obj)
-        {
-            var createdOrder = ser.SaveOrder(obj);
-            return CreatedAtAction(nameof(GetOrder), new {id = createdOrder.OrderId},
-            createdOrder);
-        }
- 
-        [HttpPut("{id}")]
-        public ActionResult<Book> UpdateOrder(int id, Order obj)
-        {
-            var res = ser.UpdateOrder(id, obj);
-            if(res == null)
-              return NotFound();
- 
-            return NoContent();
-           
-        }
- 
-        [HttpDelete("{id}")]
-        public IActionResult DeleteOrder(int id)
-        {
-            ser.DeleteOrder(id);
- 
-            return NoContent();
-        }
-    }
-}
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
- 
-namespace dotnetapp.Models
-{
-    public class Book
-    {
-        public int BookId{get;set;}
-        public string BookName{get;set;}
-        public string Category{get;set;}
-        public decimal Price{get; set;}
-    }
-}
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -159,270 +8,105 @@ namespace dotnetapp.Models
     public class Order
     {
         public int OrderId{get;set;}
+ 
         public string CustomerName{get;set;}
-        public decimal TotalAmount{get; set;}
+        public DateTime OrderDate{get;set;}
+        public decimal TotalAmount{get;set;}
+        public string Status{get;set;}
     }
 }
- book Repo
+ 
+-----------------------
+ 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using dotnetapp.Models;
 using dotnetapp.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using dotnetapp.Models;
  
-namespace dotnetapp.Repository
+namespace dotnetapp.Controllers
 {
-    public class BookRepository
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrderController : ControllerBase
     {
-        public static List<Book> books = new List<Book>();
+        private readonly OrderService db;
  
-        public List<Book> GetBooks()
+        public OrderController(OrderService db1)
         {
-            return books.ToList();
+            db=db1;
         }
  
-        public Book GetBook(int id)
+        [HttpGet]
+        public IActionResult GetAllOrders()
         {
-            return books.Find(p=>p.BookId==id);
+            var res=db.GetAllOrders();
+            return Ok(res);
         }
  
-        public Book SaveBook(Book obj)
+        [HttpGet("{orderId}")]
+        public IActionResult GetOrdersById(int orderId)
         {
-            obj.BookId = books.Count+1;
-            books.Add(obj);
-            return obj;
-        }
- 
-        public Book UpdateBook(int id, Book obj)
-        {
-            var res = books.Find(p=>p.BookId == id);
-            res.BookName = obj.BookName;
-            res.Category = obj.Category;
-            res.Price = obj.Price;
- 
-            return obj;
-        }
- 
-        public bool DeleteBook(int id)
-        {
-            var res = books.Find(p=>p.BookId == id);
- 
+            var res=db.GetOrderById(orderId);
             if(res==null)
-                return false;
+            {
+                return NotFound();
+            }
+            return Ok(res);
+        }
  
-            books.Remove(res);
-            return true;
+ 
+        [HttpPost]
+        public async Task<ActionResult> AddOrder(Order obj)
+        {
+            if(obj==null)
+            {
+                return BadRequest();
+            }
+            db.AddOrder(obj);
+            return CreatedAtAction("AddOrder",obj);
         }
     }
 }
  
-Order repo
+------------------------------------------
+ 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using dotnetapp.Models;
-using dotnetapp.Services;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
  
-namespace dotnetapp.Repository
+namespace dotnetapp.Services
 {
-    public class OrderRepository
+    public class OrderService
     {
-        public static List<Order> orders = new List<Order>();
+        public static List<Order> orders=new List<Order>();
  
-        public List<Order> GetOrders()
+        public List<Order> GetAllOrders()
         {
             return orders.ToList();
         }
  
-        public Order GetOrder(int id)
+ 
+        public Order GetOrderById(int id)
         {
-            return orders.Find(p=>p.OrderId==id);
+            return orders.Find(r=>r.OrderId==id);
+       
         }
  
-        public Order SaveOrder(Order obj)
+        public void AddOrder(Order obj)
         {
-            obj.OrderId = orders.Count+1;
             orders.Add(obj);
-            return obj;
-        }
- 
-        public Order UpdateOrder(int id, Order obj)
-        {
-            var res = orders.Find(p=>p.OrderId == id);
- 
-            if(res == null)
-              return null;
- 
-            res.CustomerName = obj.CustomerName;
-            res.TotalAmount = obj.TotalAmount;
- 
-            return res;
-        }
- 
-        public bool DeleteOrder(int id)
-        {
-            var res = orders.Find(p=>p.OrderId == id);
- 
-            if(res==null)
-                return false;
- 
-            orders.Remove(res);
-            return true;
         }
     }
 }
-Book service
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using dotnetapp.Models;
-using dotnetapp.Repository;
+ 
+-------------------------------------
 using dotnetapp.Services;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
  
- 
-namespace dotnetapp.Services
-{
-    public class BookService : IBookService
-    {
-        private readonly BookRepository ser;
- 
-        public BookService()
-        {
-            ser = new BookRepository();
-        }
-        public BookService( BookRepository ser1)
-        {
-            ser = ser1;
-           
-        }
-     
-        public List<Book> GetBooks()
-        {
-            return ser.GetBooks();
-        }
- 
-        public Book GetBook(int id)
-        {
-            return ser.GetBook(id);
-        }
- 
-        public Book SaveBook(Book obj)
-        {
-           return ser.SaveBook(obj);
-        }
- 
-        public Book UpdateBook(int id, Book obj)
-        {
-            return ser.UpdateBook(id,obj);
-        }
- 
-         public bool DeleteBook(int id){
-            return ser.DeleteBook(id);
-        }
-    }
-}
-Ibookservice
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using dotnetapp.Models;
- 
-namespace dotnetapp.Services
-{
-    public interface IBookService
-    {
-        List<Book> GetBooks();
- 
-        Book GetBook(int id);
-        Book SaveBook(Book obj);
-        Book UpdateBook(int id, Book obj);
-        bool DeleteBook(int id);
-    }
-}
-Iordrservice
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using dotnetapp.Models;
- 
-namespace dotnetapp.Services
-{
-    public interface IOrderService
-    {
-        List<Order> GetOrders();
-        Order GetOrder(int id);
-        Order SaveOrder(Order obj);
-        Order UpdateOrder(int id, Order obj);
-        bool DeleteOrder(int id);
-    }
-}
-OrderSevice
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using dotnetapp.Models;
-using dotnetapp.Repository;
-using dotnetapp.Services;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
- 
-namespace dotnetapp.Services
-{
-    public class OrderService : IOrderService
-    {
-        private readonly OrderRepository ser;
- 
-        public OrderService()
-        {
-            ser = new OrderRepository();
-        }
- 
-        public OrderService(OrderRepository ser1)
-        {
-            ser=ser1;
-        }
-   
-        public List<Order> GetOrders()
-        {
-            return ser.GetOrders();
-        }
- 
-        public Order GetOrder(int id)
-        {
-            return ser.GetOrder(id);
-        }
- 
-        public Order SaveOrder(Order obj)
-        {
-            return ser.SaveOrder(obj);
-        }
- 
-        public Order UpdateOrder(int id, Order obj)
-        {
-           return ser.UpdateOrder(id,obj);
-        }
- 
-        public bool DeleteOrder(int id){
-            return ser.DeleteOrder(id);
-        }
-    }
-}
- 
-Program cs
-using dotnetapp.Repository;
-using dotnetapp.Services;
  
 var builder = WebApplication.CreateBuilder(args);
  
@@ -431,14 +115,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
- 
-builder.Services.AddScoped<BookRepository>();
-builder.Services.AddScoped<OrderRepository>();
- 
-builder.Services.AddScoped<IBookService, BookService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
- 
- 
+builder.Services.AddScoped<OrderService>();
  
 var app = builder.Build();
  
@@ -453,7 +130,3 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
  
 app.MapControllers();
- 
-app.Run();
- 
- 
